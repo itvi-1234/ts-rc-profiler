@@ -5,7 +5,7 @@ metadata:
 workload:
   uri: https://services.example.com/api
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
+  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
 conditions:
   - kind: api
     interface:

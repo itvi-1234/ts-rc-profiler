@@ -7,6 +7,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { run } from "../src/cli.js";
+import { extensionReference } from "../src/profile.js";
 import { canonicalJson } from "../src/schema.js";
 
 const FIXTURES = fileURLToPath(new URL("../../test/fixtures/", import.meta.url));
@@ -315,4 +316,38 @@ test("tsconfig.json decides which files are profiled", () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("the extension reference is written as <short-url>:<version>", () => {
+  const result = generate(fixture("api"), ["--workload-version", "1.0.0"], "api");
+  assert.equal(result.code, 0, result.err);
+  assert.match(
+    result.out,
+    /^extensions:\n {2}- https:\/\/runtimeconditions\.io\/extensions\/common-integrations:v1alpha1\n/m,
+  );
+});
+
+test("a binding model without a root extension version lists the bare id", () => {
+  const { root, project } = workspace("api");
+  try {
+    rewrite(root, COMMON, "runtimeconditions/runtimeconditions.binding-model.yaml", (text) =>
+      text.replace(/^(rootExtension:\n {4}id: .*\n) {4}version: .*\n/m, "$1"),
+    );
+    const result = generate(project, ["--workload-version", "1.0.0"], "api");
+    assert.equal(result.code, 0, result.err);
+    assert.match(
+      result.out,
+      /^extensions:\n {2}- https:\/\/runtimeconditions\.io\/extensions\/common-integrations\/v1alpha1\/runtimeconditions\.extension\.yaml\n/m,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("extensionReference shortens https ids and leaves other ids whole", () => {
+  const tail = "/v1/runtimeconditions.extension.yaml";
+  assert.equal(extensionReference(`https://example.test/x/rc/jobs${tail}`, "v1"), "https://example.test/x/rc/jobs:v1");
+  assert.equal(extensionReference(`https://example.test/x/rc/jobs${tail}`, "v2"), `https://example.test/x/rc/jobs${tail}:v2`);
+  assert.equal(extensionReference("urn:acme:jobs", "1.0.0"), "urn:acme:jobs:1.0.0");
+  assert.equal(extensionReference("acme/jobs", undefined), "acme/jobs");
 });
