@@ -6,8 +6,8 @@ workload:
   uri: https://services.example.com/cache
   version: 1.0.0
 extensions:
-  - https://runtimeconditions.io/extensions/common-integrations/v1alpha1/runtimeconditions.extension.yaml
-  - https://runtimeconditions.io/extensions/env-configuration/v1alpha1/runtimeconditions.extension.yaml
+  - https://runtimeconditions.io/extensions/common-integrations:v1alpha1
+  - https://runtimeconditions.io/extensions/env-configuration:v1alpha1
 conditions:
   - kind: cache
     interface:

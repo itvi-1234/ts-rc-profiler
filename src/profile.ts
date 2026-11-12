@@ -32,11 +32,30 @@ export function buildProfile(extraction: Extraction, catalog: Catalog, options: 
     kind: "RuntimeConditionsProfile",
     metadata: { name: options.name },
     workload,
-    extensions: [...new Set(extraction.used.map((binding) => binding.extensionId))].sort(),
+    extensions: extensionReferences(extraction.used),
     conditions: extraction.conditions,
   };
   validateProfile(profile, catalog.closure(extraction.used));
   return profile;
+}
+
+/**
+ * Lists each used extension once, as `<short-url>:<version>`. The short URL is the
+ * extension id without its trailing `/<version>/runtimeconditions.extension.yaml`.
+ * An id that is not an https URL ending that way, or a binding without a recorded
+ * version, is written as the bare id, which the spec allows.
+ */
+export function extensionReference(id: string, version: string | undefined): string {
+  if (!version) {
+    return id;
+  }
+  const tail = `/${version}/runtimeconditions.extension.yaml`;
+  return id.startsWith("https://") && id.endsWith(tail) ? `${id.slice(0, -tail.length)}:${version}` : `${id}:${version}`;
+}
+
+function extensionReferences(used: Binding[]): string[] {
+  const references = new Set(used.map((binding) => extensionReference(binding.extensionId, binding.extensionVersion)));
+  return [...references].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
 export function validateProfile(profile: JsonObject, closure: Binding[]): void {

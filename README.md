@@ -95,7 +95,10 @@ For every binding package the profiler reads, it checks:
 
 The finished profile is validated against the bundled core profile schema and against every
 applicable extension schema in the verified closure. The profile lists the extensions that
-directly contribute declarations.
+directly contribute declarations. Each one is written as `<short-url>:<version>`, where the short URL is the extension id
+without its trailing `/<version>/runtimeconditions.extension.yaml` and the version is the root
+extension version recorded in the binding model. An id that is not an https URL ending that way,
+or a binding that records no version, is written as the bare id.
 
 ## Limits
 

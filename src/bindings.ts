@@ -37,6 +37,7 @@ export interface Binding {
   name: string;
   version: string;
   extensionId: string;
+  extensionVersion?: string;
   extensionSha256: string;
   declarations: { sourceName: string; function: string; owner: string }[];
   rootBindings: RootBinding[];
@@ -148,6 +149,7 @@ export function loadBinding(directory: string): Binding {
     name: pkg.name,
     version: pkg.version,
     extensionId: manifest.extension.id,
+    extensionVersion: model.rootExtension.version,
     extensionSha256: manifest.extension.semanticSha256,
     declarations: manifest.declarations.map((item: any) => ({
       sourceName: item.sourceName,
