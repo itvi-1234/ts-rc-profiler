@@ -1,0 +1,14 @@
+{
+  "version": "24.22.3",
+  "baseUrl": "https://nodejs.org/dist/v24.22.3",
+  "platforms": {
+    "amd64": {
+      "file": "node-v24.22.3-linux-x64.tar.xz",
+      "sha256": "4f2b175a6d53a5c617a80dba2676238a0688cef28c6da4eba35c7d844e66fcfb"
+    },
+    "arm64": {
+      "file": "node-v24.22.3-linux-arm64.tar.xz",
+      "sha256": "6e51a2ada00f0011cc266f65d98922b403d7ad88f809ca2aa615a5fe1ce6e86c"
+    }
+  }
+}
