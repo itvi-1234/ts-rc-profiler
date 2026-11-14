@@ -49,12 +49,23 @@ function required(values: Map<string, string>, flag: string): string {
   return value;
 }
 
+const VALUE_FLAGS = new Set(["--project", "--name", "--workload-uri", "--workload-version", "--out"]);
+
+/** True when --help or -h is a flag of its own, and not the value of another flag. */
+function wantsHelp(args: string[]): boolean {
+  return args.some((arg, index) => (arg === "--help" || arg === "-h") && !VALUE_FLAGS.has(args[index - 1] ?? ""));
+}
+
 export function run(args: string[], streams: Streams): number {
   const json = args.includes("--json");
   try {
     if (args[0] === "--version") {
       const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf-8"));
       streams.out(json ? `${JSON.stringify({ name: pkg.name, version: pkg.version, coreSchemas: [CORE_SCHEMA_VERSION] })}\n` : `${pkg.version}\n`);
+      return 0;
+    }
+    if (wantsHelp(args)) {
+      streams.out(`${USAGE}\n`);
       return 0;
     }
     const [command, ...rest] = args[0] === "profile" ? args.slice(1) : args;

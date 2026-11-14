@@ -351,3 +351,26 @@ test("extensionReference shortens https ids and leaves other ids whole", () => {
   assert.equal(extensionReference("urn:acme:jobs", "1.0.0"), "urn:acme:jobs:1.0.0");
   assert.equal(extensionReference("acme/jobs", undefined), "acme/jobs");
 });
+
+test("--help and -h print the usage and succeed", () => {
+  for (const args of [["--help"], ["-h"], ["profile", "--help"], ["generate", "--help"], ["profile", "generate", "-h"], ["verify-bindings", "--project", ".", "--help"]]) {
+    const result = invoke(args);
+    assert.equal(result.code, 0, args.join(" "));
+    assert.match(result.out, /^usage: runtimeconditions-typescript-profiler /, args.join(" "));
+    assert.equal(result.err, "", args.join(" "));
+  }
+});
+
+test("a -h that is the value of a flag is not a request for help", () => {
+  const result = invoke(["generate", "--project", "/does/not/exist", "--name", "-h", "--workload-uri", "https://example.test/x"]);
+  assert.equal(result.code, 1);
+  assert.match(result.err, /does not exist/);
+  assert.equal(result.out, "");
+});
+
+test("an unknown command still fails with the usage on standard error", () => {
+  const result = invoke(["frobnicate"]);
+  assert.equal(result.code, 1);
+  assert.match(result.err, /usage: runtimeconditions-typescript-profiler /);
+  assert.equal(result.out, "");
+});
