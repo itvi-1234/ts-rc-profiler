@@ -82,10 +82,7 @@ installed package carries are copied: `package.json`, the file manifest, and the
 - The release job runs only in `runtimeconditions/ts-rc-profiler`, so a fork or a personal copy never tries to publish.
 - Merge with "Squash and merge", using the PR title as the commit message, and
   require the `PR title` and `verify` checks on `main`.
-- Publishing uses the repository secret `NPM_TOKEN`, a granular npm token with read and
-  write access to the `@runtimeconditions` scope that bypasses 2FA. Set an expiry and
-  rotate it before then. The first automated release tags the version already on npm
-  without publishing it again. Once a maintainer can reach the package's Trusted
-  Publisher settings on npmjs.com, switch to trusted publishing (organization
-  `runtimeconditions`, repository `ts-rc-profiler`, workflow `release.yml`) and delete the
-  secret.
+- Publishing uses npm trusted publishing, so there is no token to rotate. The package's
+  Trusted Publisher on npmjs.com is organization `runtimeconditions`, repository
+  `ts-rc-profiler`, workflow `release.yml`, no environment. If a release ever fails to
+  publish, a maintainer can run `npm publish` by hand from a tagged checkout.

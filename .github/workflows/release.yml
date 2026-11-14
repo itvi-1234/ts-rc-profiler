@@ -89,8 +89,6 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Publish the package and tag the release
         id: release
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           version=$(scripts/next-version.sh)
           if [ -z "$version" ]; then
@@ -106,7 +104,7 @@ jobs:
             npm ci
             npm run build
             npm pkg set version="$version"
-            npm publish
+            npm publish  # authenticated by the trusted publisher on npmjs.com, no token
           fi
           git tag "v$version"
           git push origin "v$version"
