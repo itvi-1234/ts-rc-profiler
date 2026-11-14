@@ -1,0 +1,17 @@
+name: rc-profiler-typescript
+arch: ${GOARCH}
+platform: linux
+version: ${PACKAGE_VERSION}
+release: 1
+section: utils
+priority: optional
+maintainer: Runtime Conditions <maintainers@runtimeconditions.io>
+description: Runtime Conditions profiler for TypeScript codebases, with its own Node.js runtime
+vendor: Runtime Conditions
+homepage: https://github.com/runtimeconditions/ts-rc-profiler
+license: MIT
+contents:
+  - src: usr
+    dst: /usr
+    type: tree
+umask: 0o022

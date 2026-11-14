@@ -40,13 +40,41 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  packages:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: '1.26.5'
+          cache: false
+      - name: Install nfpm
+        env:
+          GOBIN: ${{ runner.temp }}/release-tools
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
+          echo "$GOBIN" >> "$GITHUB_PATH"
+      - name: Test the packaging helpers
+        run: python3 -m unittest scripts/test_release_package.py
+      - name: Build the packages
+        run: python3 scripts/release-package.py --version v0.0.0 --output "$RUNNER_TEMP/packages"
+      - name: Install them in clean Ubuntu, Debian and Rocky Linux containers
+        run: scripts/check-packages.sh "$RUNNER_TEMP/packages"
+
   release:
     if: github.event_name == 'push' && github.repository == 'runtimeconditions/ts-rc-profiler'
-    needs: verify
+    needs: [verify, packages]
     runs-on: ubuntu-latest
     permissions:
       contents: write
       id-token: write
+    outputs:
+      version: ${{ steps.release.outputs.version }}
     concurrency:
       group: release
     env:
@@ -60,6 +88,7 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: Publish the package and tag the release
+        id: release
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -82,3 +111,65 @@ jobs:
           git tag "v$version"
           git push origin "v$version"
           gh release create "v$version" --generate-notes --verify-tag
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        if: steps.release.outputs.version != ''
+        with:
+          go-version: '1.26.5'
+          cache: false
+      - name: Build the system packages and attach them to the release
+        if: steps.release.outputs.version != ''
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          GOBIN: ${{ runner.temp }}/release-tools
+        run: |
+          go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.48.0
+          export PATH="$GOBIN:$PATH"
+          python3 scripts/release-package.py --version "v$VERSION" --output "$RUNNER_TEMP/packages"
+          gh release upload "v$VERSION" "$RUNNER_TEMP"/packages/*
+
+  notify-homebrew:
+    needs: release
+    if: needs.release.outputs.version != ''
+    runs-on: ubuntu-24.04
+    environment: package-distribution
+    permissions:
+      contents: none
+    steps:
+      - name: Check that the dispatch token is configured
+        id: token
+        env:
+          TOKEN: ${{ secrets.HOMEBREW_REPO_DISPATCH_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "::notice::HOMEBREW_REPO_DISPATCH_TOKEN is not set, so the Homebrew formula is not updated"; fi
+      - name: Trigger the Homebrew formula update
+        if: steps.token.outputs.present == 'true'
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
+        with:
+          token: ${{ secrets.HOMEBREW_REPO_DISPATCH_TOKEN }}
+          repository: runtimeconditions/homebrew-tools
+          event-type: rc-profiler-typescript-release-published
+          client-payload: '{"tag":"v${{ needs.release.outputs.version }}"}'
+
+  notify-linux-packages:
+    needs: release
+    if: needs.release.outputs.version != ''
+    runs-on: ubuntu-24.04
+    environment: package-distribution
+    permissions:
+      contents: none
+    steps:
+      - name: Check that the dispatch token is configured
+        id: token
+        env:
+          TOKEN: ${{ secrets.HOMEBREW_REPO_DISPATCH_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "::notice::HOMEBREW_REPO_DISPATCH_TOKEN is not set, so the apt and yum repositories are not updated"; fi
+      - name: Trigger the apt and yum repository publication
+        if: steps.token.outputs.present == 'true'
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
+        with:
+          token: ${{ secrets.HOMEBREW_REPO_DISPATCH_TOKEN }}
+          repository: runtimeconditions/packages
+          event-type: rc-profiler-typescript-release-published
+          client-payload: '{"tag":"v${{ needs.release.outputs.version }}"}'

@@ -39,6 +39,24 @@ nothing, and several merges can share one release. The version is chosen from th
 commit messages since the last tag. The first release publishes the version in
 `package.json`.
 
+Each release also attaches system packages to the GitHub release, built by
+`scripts/release-package.py`: a `.deb` and an `.rpm` for each of amd64 and arm64, a
+`tar.gz` for Homebrew, the Homebrew formula, and `SHA256SUMS`. The `.deb` and `.rpm` carry
+the Node.js release pinned in `distribution/node.lock.json`, so they need nothing else
+installed. Update that file when Node.js has a new release. The `packages` job builds
+the packages on every pull request and installs them in clean Ubuntu, Debian, and Rocky
+Linux containers. To do the same locally, with `nfpm` and Docker installed:
+
+```
+python3 scripts/release-package.py --version v0.0.0 --output /tmp/packages
+scripts/check-packages.sh /tmp/packages
+```
+
+After the release, the `notify-homebrew` and `notify-linux-packages` jobs tell the
+homebrew-tools and packages repositories. They need the `package-distribution`
+environment and a `HOMEBREW_REPO_DISPATCH_TOKEN` secret, and skip with a notice when
+the token is missing.
+
 ## Local checks
 
 ```
